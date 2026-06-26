@@ -2,61 +2,76 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Mixer</title>
+<title>Mixer Pad</title>
 <style>
-  :root{ --bg:#0b0c14; }
-  *{box-sizing:border-box;}
-  html,body{
-    margin:0;
-    height:100%;
-    background:var(--bg);
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    overflow:hidden;
+  :root { 
+    --bg: #0b0c14; 
   }
-  #stage{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    height:100vh;
-    width:100vw;
+  
+  * { box-sizing: border-box; }
+  
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    font-family: system-ui, -apple-system, sans-serif;
+    overflow: hidden;
   }
-  #grid{
-    display:grid;
-    grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap:16px;
-    width:min(92vw, 920px);
-    aspect-ratio: 5/3;
+  
+  #stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    width: 100vw;
+    padding: 20px;
   }
-  .pad{
-    border:none;
-    border-radius:16px;
-    cursor:pointer;
-    font-weight:800;
-    font-size:clamp(12px,1.5vw,19px);
-    letter-spacing:0.5px;
-    color:#fff;
-    text-transform:uppercase;
-    transition: transform 0.08s ease, box-shadow 0.25s ease, filter 0.25s ease;
-    filter:saturate(0.3) brightness(0.4);
-    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.08);
-    padding:0 8px;
-    text-align:center;
+  
+  #grid {
+    display: grid;
+    /* More human/flexible approach: auto-fit columns instead of hardcoding a 5x3 wall */
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    width: 100%;
+    max-width: 900px;
   }
-  .pad:active{ transform:scale(0.96); }
-  .pad.on{
-    filter:saturate(0.92) brightness(1);
-    box-shadow: 0 0 14px 1px var(--glow), inset 0 0 0 2px rgba(255,255,255,0.35);
+  
+  .pad {
+    background: var(--pad-color);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    color: #fff;
+    text-transform: uppercase;
+    aspect-ratio: 4 / 3;
+    transition: all 0.1s ease;
+    /* Clean humantype approach: opacity/brightness control for inactive state */
+    opacity: 0.4;
+    filter: grayscale(30%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
   }
-  #status{
-    position:fixed;
-    bottom:14px;
-    left:0;
-    right:0;
-    text-align:center;
-    color:#8a8d9c;
-    font-size:13px;
-    min-height:18px;
+  
+  .pad:active { 
+    transform: scale(0.95); 
+  }
+  
+  .pad.on {
+    opacity: 1;
+    filter: none;
+    box-shadow: 0 0 20px var(--glow-color), inset 0 0 0 1px rgba(255,255,255,0.3);
+  }
+  
+  #status {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: #656874;
+    font-size: 13px;
   }
 </style>
 </head>
@@ -68,138 +83,109 @@
 <div id="status"></div>
 
 <script>
+// Cleaned up dataset with consolidated naming & standard HEX/RGBA strings
 const TRACKS = [
-  { file: "audio/heavy.wav",   label: "Heavy",   color: "hsl(0, 65%, 39%)",  glow: "hsl(0, 72%, 50%)"  },
-  { file: "audio/light.wav",   label: "Light",   color: "hsl(0, 65%, 46%)",  glow: "hsl(0, 72%, 57%)"  },
-  { file: "audio/pong.wav",    label: "Pong",    color: "hsl(0, 65%, 53%)",  glow: "hsl(0, 72%, 64%)"  },
-  { file: "audio/swish.wav",   label: "Swish",   color: "hsl(0, 65%, 60%)",  glow: "hsl(0, 72%, 71%)"  },
-  { file: "audio/tom.wav",     label: "Tom",     color: "hsl(0, 65%, 67%)",  glow: "hsl(0, 72%, 78%)"  },
+  { file: "audio/heavy.wav",   label: "Heavy",   color: "#661414", glow: "rgba(255, 0, 0, 0.5)" },
+  { file: "audio/light.wav",   label: "Light",   color: "#751a1a", glow: "rgba(255, 30, 30, 0.5)" },
+  { file: "audio/pong.wav",    label: "Pong",    color: "#872020", glow: "rgba(255, 60, 60, 0.5)" },
+  { file: "audio/swish.wav",   label: "Swish",   color: "#992626", glow: "rgba(255, 90, 90, 0.5)" },
+  { file: "audio/tom.wav",     label: "Tom",     color: "#aa2c2c", glow: "rgba(255, 120, 120, 0.5)" },
 
-  { file: "audio/low.wav",     label: "Low",     color: "hsl(270, 50%, 40%)", glow: "hsl(270, 62%, 53%)" },
-  { file: "audio/rumble.wav",  label: "Rumble",  color: "hsl(270, 50%, 49%)", glow: "hsl(270, 62%, 62%)" },
-  { file: "audio/groove.wav",  label: "Groove",  color: "hsl(270, 50%, 58%)", glow: "hsl(270, 62%, 71%)" },
-  { file: "audio/fae.wav",     label: "Fae",     color: "hsl(185, 58%, 46%)", glow: "hsl(185, 68%, 57%)" },
-  { file: "audio/flute.wav",   label: "Flute",   color: "hsl(185, 58%, 52%)", glow: "hsl(185, 68%, 64%)" },
+  { file: "audio/low.wav",     label: "Low",     color: "#403366", glow: "rgba(135, 90, 255, 0.5)" },
+  { file: "audio/rumble.wav",  label: "Rumble",  color: "#4f3e80", glow: "rgba(155, 110, 255, 0.5)" },
+  { file: "audio/groove.wav",  label: "Groove",  color: "#5d4999", glow: "rgba(175, 130, 255, 0.5)" },
+  { file: "audio/fae.wav",     label: "Fae",     color: "#316973", glow: "rgba(50, 210, 240, 0.5)" },
+  { file: "audio/flute.wav",   label: "Flute",   color: "#387885", glow: "rgba(80, 230, 255, 0.5)" },
 
-  { file: "audio/bell.wav",    label: "Bell",    color: "hsl(95, 55%, 44%)", glow: "hsl(95, 65%, 55%)" },
-  { file: "audio/candy.wav",   label: "Candy",   color: "hsl(95, 55%, 50%)", glow: "hsl(95, 65%, 61%)" },
-  { file: "audio/ice.wav",     label: "Ice",     color: "hsl(95, 55%, 56%)", glow: "hsl(95, 65%, 67%)" },
-  { file: "audio/angel.wav",   label: "Angel",   color: "hsl(95, 55%, 62%)", glow: "hsl(95, 65%, 73%)" },
-  { file: "audio/crystal.wav", label: "Crystal", color: "hsl(95, 55%, 68%)", glow: "hsl(95, 65%, 79%)" },
+  { file: "audio/bell.wav",    label: "Bell",    color: "#436d2b", glow: "rgba(110, 230, 70, 0.5)" },
+  { file: "audio/candy.wav",   label: "Candy",   color: "#4d7d32", glow: "rgba(130, 250, 90, 0.5)" },
+  { file: "audio/ice.wav",     label: "Ice",     color: "#578c38", glow: "rgba(140, 255, 100, 0.5)" },
+  { file: "audio/angel.wav",   label: "Angel",   color: "#619c3e", glow: "rgba(160, 255, 120, 0.5)" },
+  { file: "audio/crystal.wav", label: "Crystal", color: "#6bac44", glow: "rgba(180, 255, 140, 0.5)" },
 ];
 
 const grid = document.getElementById('grid');
 const status = document.getElementById('status');
-
 const pads = [];
 
-TRACKS.forEach((t, i) => {
+let audioCtx = null;
+let isInitialized = false;
+
+// Initialize layout
+TRACKS.forEach((track, index) => {
   const btn = document.createElement('button');
   btn.className = 'pad';
-  btn.textContent = t.label;
-  btn.style.background = t.color;
-  btn.style.setProperty('--glow', t.glow);
-  btn.addEventListener('click', () => toggle(i));
+  btn.textContent = track.label;
+  btn.style.setProperty('--pad-color', track.color);
+  btn.style.setProperty('--glow-color', track.glow);
+  btn.addEventListener('click', () => togglePad(index));
+  
   grid.appendChild(btn);
-  pads.push({ el: btn, gain: null, on: false });
+  pads.push({ el: btn, gainNode: null, isOn: false });
 });
 
-let ctx;
-let started = false;
-
-async function loadBuffer(file) {
-  console.log('[loadBuffer] starting fetch for:', file);
-  console.log('[loadBuffer] resolved absolute URL:', new URL(file, window.location.href).href);
-  console.log('[loadBuffer] page location.href:', window.location.href);
-  console.log('[loadBuffer] page protocol:', window.location.protocol);
+async function loadBuffer(url) {
   try {
-    const res = await fetch(file);
-    console.log('[loadBuffer]', file, '-> response received. ok:', res.ok, 'status:', res.status, 'statusText:', res.statusText, 'type:', res.type, 'url:', res.url);
-    if (!res.ok) {
-      console.log('[loadBuffer]', file, '-> response not ok, throwing');
-      throw new Error('missing: ' + res.status);
-    }
-    const arr = await res.arrayBuffer();
-    console.log('[loadBuffer]', file, '-> arrayBuffer received, byteLength:', arr.byteLength);
-    if (arr.byteLength === 0) {
-      console.log('[loadBuffer]', file, '-> WARNING: byteLength is 0, file is empty or not really downloaded');
-    }
-    console.log('[loadBuffer]', file, '-> attempting decodeAudioData...');
-    const decoded = await ctx.decodeAudioData(arr);
-    console.log('[loadBuffer]', file, '-> decodeAudioData SUCCESS. duration:', decoded.duration, 'sampleRate:', decoded.sampleRate, 'numberOfChannels:', decoded.numberOfChannels);
-    return decoded;
-  } catch (e) {
-    console.log('[loadBuffer]', file, '-> CAUGHT ERROR. name:', e.name, 'message:', e.message);
-    console.log('[loadBuffer]', file, '-> full error object:', e);
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    
+    const arrayBuffer = await response.arrayBuffer();
+    return await audioCtx.decodeAudioData(arrayBuffer);
+  } catch (err) {
     return null;
   }
 }
 
-async function startAll() {
-  console.log('[startAll] called. started flag was:', started);
-  started = true;
-  status.textContent = 'loading...';
-  console.log('[startAll] creating AudioContext...');
-  ctx = new (window.AudioContext || window.webkitAudioContext)();
-  console.log('[startAll] AudioContext created. state:', ctx.state, 'sampleRate:', ctx.sampleRate);
-  if (ctx.state === 'suspended') {
-    console.log('[startAll] context is suspended, attempting resume()...');
-    await ctx.resume();
-    console.log('[startAll] after resume(), state is now:', ctx.state);
+async function initAudio() {
+  isInitialized = true;
+  status.textContent = 'Loading samples...';
+  
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') {
+    await audioCtx.resume();
   }
 
-  console.log('[startAll] TRACKS array being loaded:', JSON.stringify(TRACKS.map(t => t.file)));
-  console.log('[startAll] kicking off Promise.all over', TRACKS.length, 'files...');
   const buffers = await Promise.all(TRACKS.map(t => loadBuffer(t.file)));
-  console.log('[startAll] Promise.all resolved. results:', buffers.map((b, i) => TRACKS[i].file + ' = ' + (b ? 'LOADED duration ' + b.duration : 'NULL')));
-
-  const startAt = ctx.currentTime + 0.25;
-  console.log('[startAll] ctx.currentTime is:', ctx.currentTime, '-> scheduling all sources to start at:', startAt);
-  let missing = 0;
+  const startTime = audioCtx.currentTime + 0.1;
+  let failedCount = 0;
 
   buffers.forEach((buffer, i) => {
     if (!buffer) {
-      missing++;
-      console.log('[startAll] slot', i, '(' + TRACKS[i].file + ') has no buffer, skipping source creation');
+      failedCount++;
       return;
     }
-    console.log('[startAll] slot', i, '(' + TRACKS[i].file + ') creating source + gain node');
-    const source = ctx.createBufferSource();
+
+    const source = audioCtx.createBufferSource();
     source.buffer = buffer;
     source.loop = true;
 
-    const gain = ctx.createGain();
-    gain.gain.value = 0;
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = 0;
 
-    source.connect(gain).connect(ctx.destination);
-    source.start(startAt);
-    console.log('[startAll] slot', i, '(' + TRACKS[i].file + ') source.start(' + startAt + ') called successfully');
+    source.connect(gainNode).connect(audioCtx.destination);
+    source.start(startTime);
 
-    pads[i].gain = gain;
+    pads[i].gainNode = gainNode;
   });
 
-  console.log('[startAll] done. missing count:', missing, 'out of', TRACKS.length);
-  status.textContent = missing > 0
-    ? missing + ' of ' + TRACKS.length + ' tracks did not load — check the audio folder'
+  status.textContent = failedCount > 0 
+    ? `Warning: ${failedCount} tracks failed to load.` 
     : '';
 }
 
-async function toggle(i) {
-  console.log('[toggle] pad', i, '(' + TRACKS[i].label + ') clicked. started:', started);
-  if (!started) {
-    console.log('[toggle] not started yet, calling startAll()');
-    await startAll();
-    console.log('[toggle] startAll() finished');
+async function togglePad(i) {
+  if (!isInitialized) {
+    await initAudio();
   }
+  
   const pad = pads[i];
-  pad.on = !pad.on;
-  console.log('[toggle] pad', i, 'new on state:', pad.on, '- has gain node:', !!pad.gain);
-  pad.el.classList.toggle('on', pad.on);
-  if (pad.gain) {
-    pad.gain.gain.setTargetAtTime(pad.on ? 1 : 0, ctx.currentTime, 0.015);
-    console.log('[toggle] pad', i, 'gain ramped toward', pad.on ? 1 : 0);
-  } else {
-    console.log('[toggle] pad', i, 'has NO gain node - this pad will stay silent regardless of click');
+  pad.isOn = !pad.isOn;
+  pad.el.classList.toggle('on', pad.isOn);
+  
+  if (pad.gainNode) {
+    // Smooth volume ramp to prevent clicks
+    const targetVolume = pad.isOn ? 1 : 0;
+    pad.gainNode.gain.setTargetAtTime(targetVolume, audioCtx.currentTime, 0.02);
   }
 }
 </script>
