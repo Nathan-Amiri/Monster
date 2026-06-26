@@ -2,14 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Mixer Pad</title>
+<title>Mixer</title>
 <style>
   :root { 
     --bg: #0b0c14; 
   }
-  
   * { box-sizing: border-box; }
-  
   html, body {
     margin: 0;
     height: 100%;
@@ -17,61 +15,55 @@
     font-family: system-ui, -apple-system, sans-serif;
     overflow: hidden;
   }
-  
   #stage {
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100vh;
     width: 100vw;
-    padding: 20px;
   }
-  
   #grid {
     display: grid;
-    /* More human/flexible approach: auto-fit columns instead of hardcoding a 5x3 wall */
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(3, 1fr);
     gap: 16px;
-    width: 100%;
-    max-width: 900px;
+    width: min(92vw, 920px);
+    aspect-ratio: 5 / 3;
   }
-  
   .pad {
     background: var(--pad-color);
     border: none;
-    border-radius: 12px;
+    border-radius: 16px;
     cursor: pointer;
-    font-weight: 700;
-    font-size: 14px;
+    font-weight: 800;
+    font-size: clamp(12px, 1.5vw, 19px);
     letter-spacing: 0.5px;
     color: #fff;
     text-transform: uppercase;
-    aspect-ratio: 4 / 3;
-    transition: all 0.1s ease;
-    /* Clean humantype approach: opacity/brightness control for inactive state */
+    transition: transform 0.08s ease, box-shadow 0.25s ease, filter 0.25s ease;
     opacity: 0.4;
     filter: grayscale(30%);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.08);
+    padding: 0 8px;
+    text-align: center;
   }
-  
   .pad:active { 
-    transform: scale(0.95); 
+    transform: scale(0.96); 
   }
-  
   .pad.on {
     opacity: 1;
     filter: none;
-    box-shadow: 0 0 20px var(--glow-color), inset 0 0 0 1px rgba(255,255,255,0.3);
+    box-shadow: 0 0 14px 1px var(--glow-color), inset 0 0 0 2px rgba(255,255,255,0.35);
   }
-  
   #status {
     position: fixed;
-    bottom: 20px;
+    bottom: 14px;
     left: 0;
     right: 0;
     text-align: center;
-    color: #656874;
+    color: #8a8d9c;
     font-size: 13px;
+    min-height: 18px;
   }
 </style>
 </head>
@@ -83,7 +75,6 @@
 <div id="status"></div>
 
 <script>
-// Cleaned up dataset with consolidated naming & standard HEX/RGBA strings
 const TRACKS = [
   { file: "audio/heavy.wav",   label: "Heavy",   color: "#661414", glow: "rgba(255, 0, 0, 0.5)" },
   { file: "audio/light.wav",   label: "Light",   color: "#751a1a", glow: "rgba(255, 30, 30, 0.5)" },
@@ -111,7 +102,6 @@ const pads = [];
 let audioCtx = null;
 let isInitialized = false;
 
-// Initialize layout
 TRACKS.forEach((track, index) => {
   const btn = document.createElement('button');
   btn.className = 'pad';
@@ -138,7 +128,7 @@ async function loadBuffer(url) {
 
 async function initAudio() {
   isInitialized = true;
-  status.textContent = 'Loading samples...';
+  status.textContent = 'loading...';
   
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') {
@@ -146,7 +136,7 @@ async function initAudio() {
   }
 
   const buffers = await Promise.all(TRACKS.map(t => loadBuffer(t.file)));
-  const startTime = audioCtx.currentTime + 0.1;
+  const startTime = audioCtx.currentTime + 0.25;
   let failedCount = 0;
 
   buffers.forEach((buffer, i) => {
@@ -169,7 +159,7 @@ async function initAudio() {
   });
 
   status.textContent = failedCount > 0 
-    ? `Warning: ${failedCount} tracks failed to load.` 
+    ? `${failedCount} of ${TRACKS.length} tracks did not load — check the audio folder` 
     : '';
 }
 
@@ -183,9 +173,8 @@ async function togglePad(i) {
   pad.el.classList.toggle('on', pad.isOn);
   
   if (pad.gainNode) {
-    // Smooth volume ramp to prevent clicks
     const targetVolume = pad.isOn ? 1 : 0;
-    pad.gainNode.gain.setTargetAtTime(targetVolume, audioCtx.currentTime, 0.02);
+    pad.gainNode.gain.setTargetAtTime(targetVolume, audioCtx.currentTime, 0.015);
   }
 }
 </script>
